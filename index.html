@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Real-time-chat-app</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.lordicon.com/lordicon.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <style>
+      
+      *{
+       margin: 0;
+       padding: 0;
+       box-sizing: border-box; 
+       font-family: 'Poppins', sans-serif;
+       
+      }
+      #messages{
+        background: url(https://media.istockphoto.com/id/1403848173/vector/vector-online-chatting-pattern-online-chatting-seamless-background.jpg?s=612x612&w=0&k=20&c=W3O15mtJiNlJuIgU6S9ZlnzM_yCE27eqwTCfXGYwCSo=);
+        
+      }
+      #users li{
+          margin: 0 1rem;
+          border-bottom: 1px solid white;
+      }
+      #users li:hover{
+        background-color: #91c2f7;
+        width: 80%;
+        border-radius: 4px;
+        
+
+      }
+      
+    </style>
+  </head>
+  <body class="max-h-[100vh] max-w-[100vw]">
+    
+    <div class="flex gap-2  justify-between fixed items-start">
+      <div class="min-h-[100vh] w-[18vw]  bg-[#007bff] text-white">
+        <ul id="users" class="list-none pt-2 text-xl gap-3 flex flex-col justify-between items-start"></ul>
+      </div>
+      <div class="h-[100vh] overflow-scroll">
+        <div id="header" class="bg-[#a2c7ed] py-[1rem]  text-2xl font-semibold sticky top-0"></div>
+        <ul id="messages" class=" flex flex-col mb-[2rem] gap-2 p-5 min-h-[100vh]" ></ul>
+        <form id="form" class="w-[80vw] flex-col justify-between " style="display: none;" action="">
+          <div class="fixed bottom-0 flex ">
+            <input id="input" class="w-[73vw]  p-5 h-[3rem] rounded-l-3xl" autocomplete="off" placeholder="Type your Message " />
+            <button class="bg-[#007bff] text-white text-2xl rounded-r-3xl h-[3rem] font-semibold px-3 ">Send</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <script>
+
+      
+      let allUsers=[];
+      const users=document.getElementById("users");
+      let username;
+
+      while(!username){
+        
+        username= prompt("Enter your username please");
+      }
+
+      const messages = document.getElementById('messages');
+
+      let recepentId;
+      const socket = io();
+      socket.emit("addUser", username);
+      
+      
+      const form = document.getElementById('form');
+      ;(async()=>{
+        const resp = await fetch("/users");
+        const usersData = await resp.json();
+        console.log(usersData);
+        usersData.map((user)=>{
+          allUsers.push(user);
+          if(user.username!==username){
+            const li=document.createElement("li");
+            li.style.cursor="pointer";
+            li.addEventListener("click",()=>{
+              recepentId = user.socketId;
+              form.style.display="flex";
+              const headerSection=document.getElementById("header");
+              headerSection.innerHTML=`<div  class="flex justify-start ml-[5rem] gap-4"><lord-icon style="background-color: transparent;" src="https://cdn.lordicon.com/kthelypq.json"
+              trigger="hover" style="width:30px;height:30px">
+            </lord-icon><p class="text-[green] text-[2rem] ">.</p> ${user.username}</div>`;
+              console.log(recepentId);
+            });
+            li.id=user.socketId;
+            li.innerHTML=`<div  class="flex justify-center gap-2"><lord-icon style="background-color: transparent;" src="https://cdn.lordicon.com/kthelypq.json"
+              trigger="hover" style="width:30px;height:30px">
+            </lord-icon> ${user.username}</div>`;
+            users.appendChild(li);
+          }
+        })
+      })();
+
+
+
+        socket.on("addUser",(msg)=>{
+          if(msg.message){
+            alert(msg.message);
+          }else if(msg.newUser){
+            allUsers.push(msg.newUser);
+            
+            console.log(msg.newUser);
+            const li=document.createElement("li");
+            li.style.cursor="pointer";
+            li.addEventListener("click",()=>{
+              recepentId =msg.newUser.socketId;
+              form.style.display="flex";
+              const headerSection=document.getElementById("header");
+              headerSection.innerHTML=`<div class="flex ml-[5rem] justify-start gap-4"><lord-icon style="background-color: transparent;" src="https://cdn.lordicon.com/kthelypq.json"
+              trigger="hover" style="width:30px;height:30px">
+            </lord-icon><p class="text-[green] text-[2rem] ">.</p> ${msg.newUser.username}</div>`;
+            
+              console.log(recepentId);
+            });
+            li.id=msg.newUser.socketId;
+            li.innerHTML=`<div class="flex justify-center gap-2"><lord-icon style="background-color: transparent;" src="https://cdn.lordicon.com/kthelypq.json"
+              trigger="hover" style="width:30px;height:30px">
+            </lord-icon> ${msg.newUser.username}</div>`;
+            users.appendChild(li);
+          }
+        })
+      
+        const input = document.getElementById('input');
+      
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          console.log(input.value);
+          if (input.value) {
+            const li=document.createElement('li');
+            li.textContent="You: "+input.value;
+            li.classList.add("self-end");
+            li.classList.add("bg-[#007bff]");
+            li.classList.add("text-white");
+            li.classList.add("p-2");
+            li.classList.add("rounded-xl");
+            messages.appendChild(li);
+            window.scrollTo(0, document.body.scrollHeight);
+            socket.emit('chat message', {message:input.value,recepentId}); 
+            input.value = '';
+          }
+        });
+
+
+        socket.on('chat message', (msg) => {
+          console.log(msg.message);
+            const item = document.createElement('li');
+            const name=allUsers.find(user=>user.socketId===msg.senderId).username;
+            item.textContent =name+": "+msg.message;
+            item.classList.add("self-start");
+            item.classList.add("bg-[#a2c7ed]");
+            item.classList.add("p-2");
+            item.classList.add("rounded-xl");
+            messages.appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+        socket.on('deleteUser',(socketId) => {
+          let ele=document.getElementById(socketId);
+          ele.remove();
+        })
+      </script>
+  </body>
+</html>
